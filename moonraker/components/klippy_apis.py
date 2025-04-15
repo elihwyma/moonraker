@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from ..utils import Sentinel
 from ..common import WebRequest, APITransport, RequestType
+import websocket
 
 # Annotation imports
 from typing import (
@@ -140,6 +141,19 @@ class KlippyAPI(APITransport):
             filename = filename[1:]
         # Escape existing double quotes in the file name
         filename = filename.replace("\"", "\\\"")
+
+        try:
+            ws = websocket.WebSocket()
+            ws.connect('ws://localhost:9999/', timeout=5)
+            request = """{{\"method\": \"set\", \"params\": {{\"opGcodeFile\": \"printprt:/usr/data/printer_data/gcodes/{}\"}}}}""".format(filename)
+            ws.send(request)
+            response = ws.recv()
+            ws.close()
+            logging.info(response)
+            return "ok"
+        except Exception as e:
+            logging.info(f"Failed to send request: {e}")
+
         script = f'SDCARD_PRINT_FILE FILENAME="{filename}"'
         if wait_klippy_started:
             await self.klippy.wait_started()
